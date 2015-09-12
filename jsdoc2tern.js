@@ -35,6 +35,7 @@
               var prop = properties[0];
               description = prop.description;
               type = getParamType(prop);
+              if (type == "?") type = null;
             }        
             break;
           case "function":
@@ -212,12 +213,14 @@
 	switch(name.toLowerCase()) {
 	  case "string":
 		return "string";
+	  case "integer":
 	  case "number":
 		return "number";
 	  case "boolean":
 	  case "bool":		  
 		return "bool";
-	  case "*":		  
+	  case "object":		
+	  case "*":
 		return "?";		
       default:
     	if (startsWith(name, "Array")) {
