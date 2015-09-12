@@ -126,11 +126,15 @@
     var names = name.split(".");
     var parent = ternDef;
     for (var i = 0; i < names.length; i++) {
-      var n = names[i];
-      if (!parent[n]) parent[n] = {};
-      parent = parent[n];
+      parent = getOrCreate(parent, names[i])
     }
-    return parent[jsdocItem.name] ? parent[jsdocItem.name] : parent[jsdocItem.name] = {};
+    if (jsdocItem.scope == "instance") parent = getOrCreate(parent, "prototype");
+    return getOrCreate(parent, jsdocItem.name);
+  }
+  
+  function getOrCreate(item, name) {
+    if (item[name]) return item[name];
+    return item[name] = {};
   }
   
   var getTernModule = function(moduleName, ternDef) {
