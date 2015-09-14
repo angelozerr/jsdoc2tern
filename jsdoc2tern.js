@@ -20,16 +20,17 @@
     this.visitDoc(jsDoc, ternDef);
     return ternDef;
   };
-
+  
   Generator.prototype.visitDoc = function(jsDoc, ternDef) { 
     // Iterate over all jsdoc items
     for ( var i = 0; i < jsDoc.length; i++) {
       var jsdocItem = jsDoc[i];
+      if (isIgnore(jsdocItem)) continue;
       var parent = getParent(jsdocItem, ternDef);
       if (parent) {
         var type = null, description = jsdocItem.description; 
         switch(jsdocItem.kind) {         
-          case "member":
+          case "member":            
             var properties = jsdocItem.properties;
             if (properties && properties[0]) {
               var prop = properties[0];
@@ -39,10 +40,10 @@
             }        
             break;
           case "function":
-            type = getFunctionType(jsdocItem);              
+            type = getFunctionType(jsdocItem, ternDef);
             break;
           case "class":
-            type = getFunctionType(jsdocItem);              
+            type = getFunctionType(jsdocItem, ternDef);
             break;
           case "event":
             type = null;            
@@ -51,7 +52,7 @@
             type = null;            
             break;
           case "constant":
-            type = getParamType(jsdocItem);             
+            type = getParamType(jsdocItem);
             break;
           case "typedef":
             type = null;            
@@ -121,6 +122,10 @@
     }
   }
   
+  function isIgnore(jsdocItem) {
+    return (jsdocItem.kind == "member" && jsdocItem.scope == "inner");
+  }
+  
   function getParent(jsdocItem, ternDef) {
     var name = jsdocItem.memberof;
     if (!name) return ternDef;
@@ -176,15 +181,38 @@
     return null;
   }
 
-  var getFunctionType = function(jsdocItem) {
+  var getFunctionType = function(jsdocItem, ternDef) {
     var type = "fn(", params = jsdocItem.params;
     if (params) {
-      for (var i = 0; i < params.length; i++) {
-    	if (i > 0) type+= ", ";
-        var param = params[i];
-    	type+= param.name; 
-    	type+= ": ";
-    	type+= getParamType(param);
+      var objName = jsdocItem.longname.replace(".", "").replace("<", "").replace(">", "").replace("#", "").replace("~", "");
+      for (var i = 0; i < params.length; i++) {    	
+        var param = params[i], paramType = getParamType(param), paramName = param.name;
+        if (!paramName) paramName = "arg" + i;
+        var index = paramName.indexOf(".");
+        if (index == -1) {
+          if (i > 0) type+= ", ";
+          // param name doesn't contains "."
+          // check if param is object literal 
+          if (param.type && param.type.names && param.type.names[0] == "object") {
+            if (i + 1 < params.length) {
+              if (params[i + 1].name.indexOf(".") != -1) {
+                // create object type in define
+                paramType = objName + param.name.charAt(0).toUpperCase() + param.name.substring(1, param.name.length); 
+                getOrCreate(ternDef["!define"], paramType);
+                paramType = "+" + paramType; 
+              }
+            }
+          }
+          type+= paramName ? paramName : "arg" + i; 
+          type+= ": ";
+          type+= paramType;          
+        } else {
+          var n = paramName.substring(0, index), objLitName = objName + n.charAt(0).toUpperCase() + n.substring(1, n.length);
+          var ternItem = getOrCreate(ternDef["!define"], objLitName);
+          ternItem = getOrCreate(ternItem, paramName.substring(index + 1, paramName.length));
+          ternItem["!type"] = paramType;
+          if (param.description) ternItem["!doc"] = param.description;
+        }
 	  }
     }
     type+= ")";
