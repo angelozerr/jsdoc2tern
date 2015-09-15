@@ -123,7 +123,9 @@
   }
   
   function isIgnore(jsdocItem) {
-    return (jsdocItem.kind == "member" && jsdocItem.scope == "inner");
+    if (jsdocItem.access === "private") return true;
+    if(jsdocItem.undocumented == true) return true;
+    if (jsdocItem.kind == "member" && jsdocItem.scope == "inner") return true;
   }
   
   function getParent(jsdocItem, ternDef) {
@@ -249,7 +251,9 @@
 		return "bool";
 	  case "object":		
 	  case "*":
-		return "?";		
+		return "?";
+	  case "function":
+        return "fn()";	
       default:
     	if (startsWith(name, "Array")) {
     	  // todo : improve to extract type of the array Array.<string> => [string]
