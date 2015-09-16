@@ -219,8 +219,11 @@
     }
     type+= ")";
     if (jsdocItem.returns) {
-      type+= " -> ";  	
-      type+= getParamType(jsdocItem.returns);
+      type+= " -> ";
+      for (var i = 0; i < jsdocItem.returns.length; i++) {
+        if (i > 0) type+= "|";
+        type+= getParamType(jsdocItem.returns[i]);
+      }
     }
     return type;
   }
